@@ -1,0 +1,465 @@
+/* =========================================
+   ПОШУК МІСТА
+========================================= */
+
+.city-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+  position: relative;
+  z-index: 5;
+}
+
+.city-selector label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.city-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.city-search-wrapper input {
+  width: 100%;
+  padding: 13px 15px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+
+  background: var(--card);
+  color: var(--text);
+
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.city-search-wrapper input::placeholder {
+  color: var(--text-muted);
+}
+
+.city-search-wrapper input:focus {
+  border-color: var(--blue);
+}
+
+.city-suggestions {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  width: 100%;
+
+  padding: 6px;
+
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  box-shadow: var(--shadow);
+  z-index: 20;
+}
+
+.city-suggestion {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+  color: var(--text);
+
+  text-align: left;
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.city-suggestion:hover,
+.city-suggestion.active {
+  background: var(--card-secondary);
+  color: var(--blue);
+}
+
+.city-no-results {
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.city-close {
+  width: 100%;
+  margin-top: 5px;
+  padding: 9px;
+
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+
+  background: transparent;
+  color: var(--text-muted);
+
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.city-close:hover {
+  color: var(--blue);
+}
+
+/* =========================================
+   ЗАГАЛЬНІ КАРТКИ
+========================================= */
+
+.weather-card,
+.forecast-card,
+.accuracy-card {
+  margin-bottom: 22px;
+  padding: 26px;
+
+  border: 1px solid var(--border);
+  border-radius: 20px;
+
+  background: var(--card);
+  box-shadow: var(--shadow);
+
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.weather-card:hover,
+.forecast-card:hover,
+.accuracy-card:hover {
+  border-color: rgba(131, 170, 255, 0.3);
+}
+
+.app[data-theme="light"] .weather-card,
+.app[data-theme="light"] .forecast-card,
+.app[data-theme="light"] .accuracy-card {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: #e2e7f3;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+
+  margin-bottom: 22px;
+}
+
+.section-heading h2 {
+  color: var(--text);
+  font-size: 19px;
+  margin-bottom: 7px;
+}
+
+.section-heading p {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* =========================================
+   ПОТОЧНА ПОГОДА
+========================================= */
+
+.weather-card {
+  position: relative;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 85% 15%,
+      rgba(131, 170, 255, 0.2),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 10% 100%,
+      rgba(182, 160, 245, 0.1),
+      transparent 35%
+    ),
+    linear-gradient(120deg, #1c2c49, #252c50);
+
+  border-color: rgba(131, 170, 255, 0.2);
+}
+
+.app[data-theme="light"] .weather-card {
+  background:
+    radial-gradient(
+      circle at 85% 15%,
+      rgba(156, 180, 255, 0.25),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 10% 100%,
+      rgba(190, 168, 232, 0.2),
+      transparent 35%
+    ),
+    linear-gradient(120deg, #ffffff, #edf0ff);
+}
+
+.weather-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weather-card h2 {
+  color: var(--text);
+  font-size: 23px;
+  margin-bottom: 7px;
+}
+
+.weather-condition {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.weather-icon {
+  font-size: 60px;
+  filter: drop-shadow(0 5px 14px rgba(182, 160, 245, 0.22));
+}
+
+.temperature {
+  margin-top: 15px;
+
+  color: var(--cyan);
+  font-size: 70px;
+  font-weight: bold;
+  letter-spacing: -2px;
+}
+
+.app[data-theme="light"] .temperature {
+  color: #526ba9;
+}
+
+.temperature span {
+  font-size: 32px;
+  font-weight: normal;
+}
+
+.feels-like {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+/* Показники погоди */
+
+.weather-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+
+  margin-top: 30px;
+  padding-top: 22px;
+
+  border-top: 1px solid var(--border);
+}
+
+.weather-detail {
+  min-width: 0;
+  padding: 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: rgba(131, 170, 255, 0.055);
+}
+
+.app[data-theme="light"] .weather-detail {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: #e5e9f5;
+}
+
+.weather-detail > span {
+  font-size: 23px;
+}
+
+.weather-detail div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.weather-detail small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.weather-detail strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* =========================================
+   ПРОГНОЗ НА 24 ГОДИНИ
+========================================= */
+
+.forecast-badge {
+  padding: 8px 12px;
+
+  border: 1px solid rgba(131, 170, 255, 0.17);
+  border-radius: 8px;
+
+  background: rgba(131, 170, 255, 0.12);
+  color: var(--blue);
+
+  font-size: 12px;
+}
+
+.app[data-theme="light"] .forecast-badge {
+  background: #e9edff;
+  color: #6379bd;
+  border-color: #dfe5fa;
+}
+
+.forecast-timeline-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 12px;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--blue) transparent;
+}
+
+.forecast-timeline-content {
+  width: max-content;
+}
+
+.temperature-chart {
+  width: 2088px;
+  height: 190px;
+  margin: 10px 0 4px;
+}
+
+.temperature-line {
+  display: block;
+  width: 2088px;
+  height: 190px;
+  overflow: visible;
+}
+
+.forecast-list {
+  display: grid;
+  grid-template-columns: repeat(24, 75px);
+  gap: 12px;
+
+  width: max-content;
+  padding: 4px 0 8px;
+}
+
+.forecast-item {
+  width: 75px;
+  min-height: 85px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 10px 5px;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--card-secondary);
+}
+
+.forecast-current {
+  border-color: var(--blue);
+  background: var(--card);
+}
+
+.forecast-time {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.forecast-icon {
+  font-size: 21px;
+}
+
+.forecast-item strong {
+  font-size: 17px;
+}
+
+.forecast-wind {
+  font-size: 12px !important;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.forecast-wind span {
+  color: var(--cyan);
+  font-size: 15px;
+}
+
+/* =========================================
+   ТОЧНІСТЬ ПРОГНОЗУ НА ГОЛОВНІЙ
+========================================= */
+
+.accuracy-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.accuracy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.accuracy-row:last-child {
+  border-bottom: none;
+}
+
+.accuracy-row > span:first-child {
+  min-width: 55px;
+}
+
+.accuracy-values {
+  display: flex;
+  gap: 22px;
+  color: var(--text-muted);
+}
+
+.accuracy-values strong {
+  color: var(--text);
+}
+
+.accuracy-status {
+  padding: 6px 10px;
+
+  border: 1px solid rgba(255, 190, 120, 0.15);
+  border-radius: 7px;
+
+  background: rgba(255, 190, 120, 0.12);
+  color: #ffc58d;
+
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.accuracy-status.good {
+  background: rgba(131, 217, 180, 0.12);
+  color: var(--green);
+  border-color: rgba(131, 217, 180, 0.15);
+}

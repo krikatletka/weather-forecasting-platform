@@ -1,0 +1,111 @@
+/* =========================================
+   WEATHERTRACK — ОСНОВНІ НАЛАШТУВАННЯ
+========================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* =========================================
+   КОЛЬОРИ ТА ТЕМНА ТЕМА
+========================================= */
+
+.app {
+  --bg: #10182b;
+  --bg-secondary: #17233b;
+  --card: #1c2b46;
+  --card-secondary: #223451;
+  --border: rgba(160, 185, 230, 0.13);
+
+  --text: #edf3ff;
+  --text-muted: #9eafca;
+
+  --blue: #83aaff;
+  --purple: #b6a0f5;
+  --cyan: #83dce5;
+  --green: #83d9b4;
+  --red: #f18b9d;
+
+  --shadow: 0 12px 35px rgba(0, 0, 0, 0.16);
+
+  min-height: 100vh;
+  color: var(--text);
+
+  background:
+    radial-gradient(
+      ellipse at 5% 0%,
+      rgba(82, 119, 207, 0.14),
+      transparent 32%
+    ),
+    radial-gradient(
+      ellipse at 95% 15%,
+      rgba(143, 105, 201, 0.1),
+      transparent 30%
+    ),
+    var(--bg);
+
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+/* =========================================
+   СВІТЛА ТЕМА
+========================================= */
+
+.app[data-theme="light"] {
+  --bg: #eef2fa;
+  --bg-secondary: #f5f6fc;
+  --card: #ffffff;
+  --card-secondary: #f0f1fb;
+  --border: #e1e6f2;
+
+  --text: #263451;
+  --text-muted: #7885a0;
+
+  --blue: #8298df;
+  --purple: #a995df;
+  --cyan: #648fc7;
+  --green: #4caa85;
+  --red: #d87588;
+
+  --shadow: 0 10px 30px rgba(75, 91, 140, 0.07);
+
+  background:
+    radial-gradient(
+      circle at 10% 5%,
+      rgba(177, 190, 255, 0.22),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 90% 20%,
+      rgba(205, 185, 255, 0.2),
+      transparent 30%
+    ),
+    var(--bg);
+}

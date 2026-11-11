@@ -1,0 +1,153 @@
+/* =========================================
+   СПОВІЩЕННЯ
+========================================= */
+
+.alert-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  align-items: end;
+  gap: 15px;
+}
+
+.alert-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-field label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.alert-field select,
+.alert-field input {
+  width: 100%;
+  padding: 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--bg-secondary);
+  color: var(--text);
+
+  outline: none;
+}
+
+.alert-field select:focus,
+.alert-field input:focus {
+  border-color: var(--blue);
+}
+
+.add-alert-button {
+  padding: 13px 18px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: linear-gradient(120deg, #829fff, #a995ed);
+  color: #141a30;
+
+  font-weight: bold;
+  white-space: nowrap;
+
+  transition: filter 0.2s ease;
+}
+
+.add-alert-button:hover {
+  filter: brightness(1.1);
+}
+
+.empty-alerts {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 15px 0;
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-item strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.alert-item p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.alert-status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 5px 9px;
+
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.alert-status.active {
+  background: rgba(131, 217, 180, 0.12);
+  color: var(--green);
+}
+
+.alert-status.disabled {
+  background: rgba(158, 175, 202, 0.12);
+  color: var(--text-muted);
+}
+
+.alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.alert-toggle-button,
+.delete-alert-button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: transparent;
+  font-size: 12px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.alert-toggle-button {
+  color: var(--blue);
+}
+
+.alert-toggle-button:hover {
+  background: rgba(131, 170, 255, 0.1);
+  border-color: var(--blue);
+}
+
+.delete-alert-button {
+  border-color: rgba(241, 139, 157, 0.18);
+  background: rgba(241, 139, 157, 0.1);
+  color: var(--red);
+}
+
+.delete-alert-button:hover {
+  background: rgba(241, 139, 157, 0.18);
+}

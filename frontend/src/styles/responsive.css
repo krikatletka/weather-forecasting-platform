@@ -1,0 +1,228 @@
+/* =========================================
+   ФОКУС КЛАВІАТУРИ
+========================================= */
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+
+/* =========================================
+   АДАПТИВНІСТЬ — ПЛАНШЕТИ
+========================================= */
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 190px;
+  }
+
+  .home-page {
+    padding: 25px;
+  }
+
+  .weather-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .alert-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 850px) {
+  .header {
+    padding-left: 22px;
+    padding-right: 22px;
+    gap: 14px;
+  }
+
+  .header-actions {
+    gap: 12px;
+  }
+
+  .user-details {
+    max-width: 125px;
+  }
+}
+
+/* =========================================
+   АДАПТИВНІСТЬ — МОБІЛЬНІ ПРИСТРОЇ
+========================================= */
+
+@media (max-width: 700px) {
+  .header {
+    min-height: auto;
+    flex-wrap: wrap;
+    padding: 15px 18px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .header-user {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .user-details {
+    max-width: 150px;
+  }
+
+  .statistics-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .statistics-table-row {
+    min-width: 550px;
+  }
+}
+
+@media (max-width: 600px) {
+  .header-info {
+    display: none;
+  }
+
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    padding: 12px;
+
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-title,
+  .sidebar-bottom {
+    display: none;
+  }
+
+  .sidebar nav {
+    flex-direction: row;
+  }
+
+  .menu-item {
+    justify-content: center;
+    padding: 10px 5px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .home-page {
+    padding: 20px 15px;
+  }
+
+  .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .city-selector {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .weather-card,
+  .forecast-card,
+  .accuracy-card {
+    padding: 18px;
+  }
+
+  .temperature {
+    font-size: 55px;
+  }
+
+  .accuracy-row {
+    flex-wrap: wrap;
+  }
+
+  .accuracy-values {
+    gap: 12px;
+  }
+
+  .alert-form {
+    grid-template-columns: 1fr;
+  }
+
+  .alert-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .auth-theme-toggle {
+    top: 12px;
+    right: 12px;
+  }
+
+  .statistics-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .statistics-controls select {
+    width: 100%;
+  }
+
+  .statistics-chart-card {
+    padding: 18px;
+  }
+
+  .statistics-chart {
+    height: 160px;
+  }
+}
+
+@media (max-width: 400px) {
+  .auth-card {
+    padding: 25px 20px;
+  }
+
+  .weather-details {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .accuracy-values {
+    flex-wrap: wrap;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .user-details {
+    max-width: 115px;
+  }
+
+  .alert-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* =========================================
+   ЗМЕНШЕННЯ АНІМАЦІЙ
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
