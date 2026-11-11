@@ -15,20 +15,16 @@ function App() {
   const [activePage, setActivePage] = useState("home");
   const [user, setUser] = useState(null);
 
-  // Завантажуємо збережену тему або використовуємо темну
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("weather-theme") || "dark";
   });
 
-  // Початкове місто
   const [selectedCity, setSelectedCity] = useState(weatherData.cities[0]);
 
-  // Зберігаємо тему після кожної зміни
   useEffect(() => {
     localStorage.setItem("weather-theme", theme);
   }, [theme]);
 
-  // Зберігаємо місто окремо для кожного користувача
   useEffect(() => {
     if (user) {
       localStorage.setItem(`weather-city-${user.email}`, selectedCity.id);
@@ -39,7 +35,6 @@ function App() {
     setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"));
   }
 
-  // Завантаження міста, збереженого для акаунта
   function loadUserCity(email) {
     const savedCityId = localStorage.getItem(`weather-city-${email}`);
 
@@ -68,7 +63,6 @@ function App() {
     setActivePage("home");
   }
 
-  // Якщо користувач ще не увійшов
   if (!user) {
     return (
       <div className="app" data-theme={theme}>
@@ -94,7 +88,6 @@ function App() {
     );
   }
 
-  // Основна частина застосунку
   return (
     <div className="app" data-theme={theme}>
       <Header

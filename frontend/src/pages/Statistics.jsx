@@ -5,7 +5,6 @@ import CitySelector from "../components/CitySelector";
 function Statistics({ selectedCity, setSelectedCity }) {
   const [period, setPeriod] = useState("7");
 
-  // Отримання статистики вибраного міста
   const cityAccuracy = weatherData.accuracy[selectedCity.id];
   const cityForecast = weatherData.forecasts[selectedCity.id];
 
@@ -28,7 +27,6 @@ function Statistics({ selectedCity, setSelectedCity }) {
           difference: Math.abs(item.predicted - item.actual),
         }));
 
-  // Розрахунок середніх значень
   const averagePredicted =
     statistics.reduce((sum, item) => sum + item.predicted, 0) /
     statistics.length;
