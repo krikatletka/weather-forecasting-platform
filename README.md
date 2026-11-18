@@ -400,6 +400,79 @@ Run only the weather history seeder:
 docker compose exec backend php artisan db:seed --class=WeatherLogSeeder
 ```
 
+## Open-Meteo API Integration
+
+The Laravel backend integrates with Open-Meteo to retrieve
+hourly weather forecasts.
+
+### OpenMeteoService
+
+Location: `backend/app/Services/OpenMeteoService.php`
+
+The service provides the method:
+
+`getHourlyForecast(float $latitude, float $longitude): array`
+
+It retrieves a 48-hour forecast containing:
+
+- Temperature (°C)
+- Relative humidity (%)
+- Precipitation (mm)
+- Surface pressure (hPa)
+- Wind speed (m/s)
+- Wind direction (degrees)
+
+The API request uses GMT (UTC) timestamps.
+
+The service includes coordinate validation, connection and
+request timeouts, automatic retries, HTTP error handling,
+and response structure validation.
+
+### WeatherDTO
+
+Location: `backend/app/DTO/WeatherDTO.php`
+
+`WeatherDTO::fromHourly($data['hourly'], $index)` converts
+one hourly forecast entry into a structured DTO.
+
+`$weather->toArray()` returns normalized weather fields:
+
+- `recorded_at`
+- `temperature`
+- `humidity`
+- `precipitation`
+- `surface_pressure`
+- `wind_speed`
+- `wind_direction`
+
+The DTO validates required fields and weather values.
+
+### Testing
+
+Run all Laravel tests:
+
+```powershell
+docker compose exec backend php artisan test
+```
+
+Run the Open-Meteo service tests:
+
+```powershell
+docker compose exec backend php artisan test --filter=OpenMeteoServiceTest
+```
+
+Run the DTO tests:
+
+```powershell
+docker compose exec backend php artisan test --filter=WeatherDTOTest
+```
+
+API tests use Laravel HTTP fakes and do not require
+an external network connection.
+
+The current integration retrieves and normalizes forecasts.
+It does not automatically store them in PostgreSQL.
+
 ## Database Verification
 
 Check migration status:
