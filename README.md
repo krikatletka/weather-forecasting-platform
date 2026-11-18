@@ -705,3 +705,79 @@ When your work is ready for review:
 - Do not modify another team member's work without discussing it first.
 - Do not force-push or delete shared branches.
 - If you encounter Git conflicts or errors, ask the Team Lead before proceeding.
+
+## Background Services
+
+The project uses four Docker Compose services:
+
+| Service | Purpose |
+|---------|---------|
+| postgres | PostgreSQL 16 database |
+| backend | Laravel application |
+| queue-worker | Processes queued Laravel jobs |
+| scheduler | Runs scheduled Laravel tasks |
+
+### Starting the Services
+
+After configuring the root `.env` and backend `.env` files,
+installing dependencies, and initializing the database,
+start all services:
+
+```powershell
+docker compose up -d --build
+```
+
+Check their status:
+
+```powershell
+docker compose ps
+```
+
+All four services should be running, and PostgreSQL should
+report a healthy status.
+
+### Queue Worker
+
+The `queue-worker` service runs:
+
+```bash
+php artisan queue:work --sleep=3 --tries=3 --timeout=60
+```
+
+It processes background jobs created by the Laravel application.
+
+### Scheduler
+
+The `scheduler` service runs:
+
+```bash
+php artisan schedule:work
+```
+
+It checks for scheduled Laravel tasks and executes them
+when their scheduled time arrives.
+
+Scheduled tasks must be registered separately in Laravel.
+
+### Troubleshooting
+
+Check background service logs:
+
+```powershell
+docker compose logs --tail=50 queue-worker scheduler
+```
+
+Check running processes:
+
+```powershell
+docker compose top queue-worker
+docker compose top scheduler
+```
+
+### Database Safety
+
+PostgreSQL data is stored in the named Docker volume
+`weather_postgres_data`.
+
+Do not use `docker compose down -v` unless you explicitly
+intend to delete the database volume and its contents.
