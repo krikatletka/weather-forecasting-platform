@@ -1,3 +1,60 @@
+## Database Safety and Testing
+
+### Separate Test Database
+
+The project uses two PostgreSQL databases:
+
+- `weather_db` — main development database.
+- `weather_db_test` — isolated database for automated tests.
+
+The PHPUnit configuration in `backend/phpunit.xml`
+sets the test connection to PostgreSQL and selects
+`weather_db_test`.
+
+The test database must be created locally before
+running database tests:
+
+```powershell
+docker compose exec -T postgres psql -U weather_user -d weather_db -c "CREATE DATABASE weather_db_test OWNER weather_user;"
+```
+
+Run the database isolation test:
+
+```powershell
+docker compose exec backend php artisan test --filter=DatabaseIsolationTest
+```
+
+The isolation test verifies that PHPUnit uses
+`weather_db_test` instead of `weather_db`.
+
+Do not run database-resetting tests against `weather_db`.
+
+### Database Constraints
+
+PostgreSQL CHECK constraints enforce valid weather values:
+
+- Humidity must be between 0 and 100.
+- Wind direction must be between 0 and 359 degrees.
+- Wind speed and precipitation cannot be negative.
+- Prediction confidence score must be between 0 and 1.
+- Predicted precipitation cannot be negative.
+- Daily minimum temperature must not exceed the average.
+- Daily average temperature must not exceed the maximum.
+- Daily total precipitation cannot be negative.
+
+### Notification Error Tracking
+
+The `notification_logs` table includes a nullable
+`error_message` field for storing notification
+delivery errors.
+
+### Prediction Validation Index
+
+A partial PostgreSQL index named
+`weather_predictions_pending_validation_idx`
+supports efficient lookup of predictions that
+have not yet been validated (`actual_temp IS NULL`).
+
 # Weather Forecasting Platform
 
 University team project (5 students) for weather monitoring, historical forecasting, and weather-triggered alerts for Ukrainian cities.
