@@ -16,6 +16,7 @@ class NotificationLog extends Model
         'triggered_value',
         'sent_at',
         'status',
+        'error_message',
     ];
 
     protected function casts(): array

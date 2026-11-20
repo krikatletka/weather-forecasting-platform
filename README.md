@@ -1,3 +1,60 @@
+## Database Safety and Testing
+
+### Separate Test Database
+
+The project uses two PostgreSQL databases:
+
+- `weather_db` — main development database.
+- `weather_db_test` — isolated database for automated tests.
+
+The PHPUnit configuration in `backend/phpunit.xml`
+sets the test connection to PostgreSQL and selects
+`weather_db_test`.
+
+The test database must be created locally before
+running database tests:
+
+```powershell
+docker compose exec -T postgres psql -U weather_user -d weather_db -c "CREATE DATABASE weather_db_test OWNER weather_user;"
+```
+
+Run the database isolation test:
+
+```powershell
+docker compose exec backend php artisan test --filter=DatabaseIsolationTest
+```
+
+The isolation test verifies that PHPUnit uses
+`weather_db_test` instead of `weather_db`.
+
+Do not run database-resetting tests against `weather_db`.
+
+### Database Constraints
+
+PostgreSQL CHECK constraints enforce valid weather values:
+
+- Humidity must be between 0 and 100.
+- Wind direction must be between 0 and 359 degrees.
+- Wind speed and precipitation cannot be negative.
+- Prediction confidence score must be between 0 and 1.
+- Predicted precipitation cannot be negative.
+- Daily minimum temperature must not exceed the average.
+- Daily average temperature must not exceed the maximum.
+- Daily total precipitation cannot be negative.
+
+### Notification Error Tracking
+
+The `notification_logs` table includes a nullable
+`error_message` field for storing notification
+delivery errors.
+
+### Prediction Validation Index
+
+A partial PostgreSQL index named
+`weather_predictions_pending_validation_idx`
+supports efficient lookup of predictions that
+have not yet been validated (`actual_temp IS NULL`).
+
 # Weather Forecasting Platform
 
 University team project (5 students) for weather monitoring, historical forecasting, and weather-triggered alerts for Ukrainian cities.
@@ -343,6 +400,79 @@ Run only the weather history seeder:
 docker compose exec backend php artisan db:seed --class=WeatherLogSeeder
 ```
 
+## Open-Meteo API Integration
+
+The Laravel backend integrates with Open-Meteo to retrieve
+hourly weather forecasts.
+
+### OpenMeteoService
+
+Location: `backend/app/Services/OpenMeteoService.php`
+
+The service provides the method:
+
+`getHourlyForecast(float $latitude, float $longitude): array`
+
+It retrieves a 48-hour forecast containing:
+
+- Temperature (°C)
+- Relative humidity (%)
+- Precipitation (mm)
+- Surface pressure (hPa)
+- Wind speed (m/s)
+- Wind direction (degrees)
+
+The API request uses GMT (UTC) timestamps.
+
+The service includes coordinate validation, connection and
+request timeouts, automatic retries, HTTP error handling,
+and response structure validation.
+
+### WeatherDTO
+
+Location: `backend/app/DTO/WeatherDTO.php`
+
+`WeatherDTO::fromHourly($data['hourly'], $index)` converts
+one hourly forecast entry into a structured DTO.
+
+`$weather->toArray()` returns normalized weather fields:
+
+- `recorded_at`
+- `temperature`
+- `humidity`
+- `precipitation`
+- `surface_pressure`
+- `wind_speed`
+- `wind_direction`
+
+The DTO validates required fields and weather values.
+
+### Testing
+
+Run all Laravel tests:
+
+```powershell
+docker compose exec backend php artisan test
+```
+
+Run the Open-Meteo service tests:
+
+```powershell
+docker compose exec backend php artisan test --filter=OpenMeteoServiceTest
+```
+
+Run the DTO tests:
+
+```powershell
+docker compose exec backend php artisan test --filter=WeatherDTOTest
+```
+
+API tests use Laravel HTTP fakes and do not require
+an external network connection.
+
+The current integration retrieves and normalizes forecasts.
+It does not automatically store them in PostgreSQL.
+
 ## Database Verification
 
 Check migration status:
@@ -575,3 +705,79 @@ When your work is ready for review:
 - Do not modify another team member's work without discussing it first.
 - Do not force-push or delete shared branches.
 - If you encounter Git conflicts or errors, ask the Team Lead before proceeding.
+
+## Background Services
+
+The project uses four Docker Compose services:
+
+| Service | Purpose |
+|---------|---------|
+| postgres | PostgreSQL 16 database |
+| backend | Laravel application |
+| queue-worker | Processes queued Laravel jobs |
+| scheduler | Runs scheduled Laravel tasks |
+
+### Starting the Services
+
+After configuring the root `.env` and backend `.env` files,
+installing dependencies, and initializing the database,
+start all services:
+
+```powershell
+docker compose up -d --build
+```
+
+Check their status:
+
+```powershell
+docker compose ps
+```
+
+All four services should be running, and PostgreSQL should
+report a healthy status.
+
+### Queue Worker
+
+The `queue-worker` service runs:
+
+```bash
+php artisan queue:work --sleep=3 --tries=3 --timeout=60
+```
+
+It processes background jobs created by the Laravel application.
+
+### Scheduler
+
+The `scheduler` service runs:
+
+```bash
+php artisan schedule:work
+```
+
+It checks for scheduled Laravel tasks and executes them
+when their scheduled time arrives.
+
+Scheduled tasks must be registered separately in Laravel.
+
+### Troubleshooting
+
+Check background service logs:
+
+```powershell
+docker compose logs --tail=50 queue-worker scheduler
+```
+
+Check running processes:
+
+```powershell
+docker compose top queue-worker
+docker compose top scheduler
+```
+
+### Database Safety
+
+PostgreSQL data is stored in the named Docker volume
+`weather_postgres_data`.
+
+Do not use `docker compose down -v` unless you explicitly
+intend to delete the database volume and its contents.
