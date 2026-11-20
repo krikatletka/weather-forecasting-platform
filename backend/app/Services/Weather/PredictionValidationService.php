@@ -15,7 +15,8 @@ class PredictionValidationService
             ->whereExists(function ($query) {
                 $query->selectRaw('1')->from('weather_logs')
                     ->whereColumn('weather_logs.city_id', 'weather_predictions.city_id')
-                    ->whereColumn('weather_logs.recorded_at', 'weather_predictions.predicted_for_at');
+                    ->whereColumn('weather_logs.recorded_at', 'weather_predictions.predicted_for_at')
+                    ->where('weather_logs.data_source', '!=', 'open_meteo_model');
             })
             ->orderBy('id')
             ->chunkById(200, function ($rows) use (&$updated) {
@@ -23,6 +24,7 @@ class PredictionValidationService
                     $actual = DB::table('weather_logs')
                         ->where('city_id', $prediction->city_id)
                         ->where('recorded_at', $prediction->predicted_for_at)
+                        ->where('data_source', '!=', 'open_meteo_model')
                         ->value('temperature');
                     if ($actual !== null) {
                         $updated += DB::table('weather_predictions')->where('id', $prediction->id)->whereNull('actual_temp')->update([

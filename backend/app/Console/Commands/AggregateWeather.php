@@ -19,7 +19,7 @@ class AggregateWeather extends Command
                 : CarbonImmutable::now('UTC')->yesterday();
             $to = $this->option('to')
                 ? CarbonImmutable::createFromFormat('!Y-m-d', $this->option('to'), 'UTC')
-                : $from;
+                : CarbonImmutable::now('UTC')->startOfDay();
             if (!$from || !$to) {
                 throw new \InvalidArgumentException('Invalid date. Use YYYY-MM-DD.');
             }

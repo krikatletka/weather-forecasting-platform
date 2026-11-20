@@ -84,7 +84,37 @@ class PredictionService
             'created_at' => now(),
             'updated_at' => now(),
         ];
-        $id = DB::table('weather_predictions')->insertGetId($data);
+        // PostgreSQL advisory lock serializes writes for this forecast identity.
+        // No migration or schema change to Diana's tables is required.
+        $identity = [
+            'city_id' => $cityId,
+            'generated_at' => $data['generated_at'],
+            'predicted_for_at' => $data['predicted_for_at'],
+            'algorithm_type' => $algorithm,
+        ];
+        $id = DB::transaction(function () use ($identity, $data): int {
+            $lockKey = implode(':', array_values($identity));
+            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', [$lockKey]);
+            $existing = DB::table('weather_predictions')->where($identity)->orderBy('id')->first();
+            if ($existing === null) {
+                return (int) DB::table('weather_predictions')->insertGetId($data);
+            }
+            $changed = (float) $existing->predicted_temp !== (float) $data['predicted_temp']
+                || (float) $existing->predicted_precipitation !== (float) $data['predicted_precipitation'];
+            $updates = [
+                'predicted_temp' => $data['predicted_temp'],
+                'predicted_precipitation' => $data['predicted_precipitation'],
+                'confidence_score' => $data['confidence_score'],
+                'updated_at' => now(),
+            ];
+            if ($changed) {
+                // The validation must be recomputed if the forecast changed.
+                $updates['actual_temp'] = null;
+                $updates['error_margin'] = null;
+            }
+            DB::table('weather_predictions')->where('id', $existing->id)->update($updates);
+            return (int) $existing->id;
+        });
         return ['id' => $id, 'city_id' => $cityId, 'issued_at' => $data['generated_at'], 'target' => $data['predicted_for_at'], 'algorithm' => $algorithm] + $result;
     }
 
