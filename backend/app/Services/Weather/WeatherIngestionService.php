@@ -6,11 +6,14 @@ use App\Models\City;
 use App\Models\WeatherLog;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
+use App\Events\WeatherLogCreated;
+use Illuminate\Support\Facades\Log;
 
 /** Synchronize past-hour Open-Meteo model estimates. These are NOT measured observations. */
 class WeatherIngestionService
 {
     private const FIELDS = 'temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,precipitation,weather_code';
+    private const ALERT_MAX_AGE_HOURS = 3;
 
     public function ingest(City $city, ?CarbonImmutable $now = null): array
     {
@@ -82,12 +85,35 @@ class WeatherIngestionService
             );
             if ($log->wasRecentlyCreated) {
                 $inserted++;
-                // Do not emit observed-weather alerts for model-estimated data.
+                // Лише свіжі записи: при першому запуску (past_days=2) чи після простою
+                // не надсилаємо листи про вчорашню погоду.
+                if ($timestamp->greaterThanOrEqualTo($now->subHours(self::ALERT_MAX_AGE_HOURS))) {
+                    $this->notifyAlerts($log);
+                }
             } else {
                 $skipped++;
             }
         }
-        return ['ok' => $failed === 0, 'inserted' => $inserted, 'skipped' => $skipped, 'invalid' => $failed,
-            'message' => $failed ? 'Some hourly rows were invalid' : 'OK'];
+        
+        return [
+            'ok' => $failed === 0, 
+            'inserted' => $inserted, 
+            'skipped' => $skipped, 
+            'invalid' => $failed,
+            'message' => $failed ? 'Some hourly rows were invalid' : 'OK'
+        ];
+    } 
+
+    private function notifyAlerts(WeatherLog $log): void
+    {
+        try {
+            WeatherLogCreated::dispatch($log);
+        } catch (\Throwable $e) {
+            // Збій сповіщень не повинен зупиняти збір погоди.
+            Log::error('Alert evaluation failed', [
+                'weather_log_id' => $log->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
-}
+} 

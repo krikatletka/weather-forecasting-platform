@@ -35,7 +35,10 @@ class SendWeatherAlertJob implements ShouldQueue
 
     public function failed(Throwable $e): void
     {
-        NotificationLog::whereKey($this->notificationLogId)->update(['status' => 'failed']);
+        NotificationLog::whereKey($this->notificationLogId)->update([
+            'status' => 'failed',
+            'error_message' => mb_substr($e->getMessage(), 0, 1000),
+        ]);
         Log::error('Не вдалося надіслати сповіщення', [
             'notification_log_id' => $this->notificationLogId,
             'error' => $e->getMessage(),
