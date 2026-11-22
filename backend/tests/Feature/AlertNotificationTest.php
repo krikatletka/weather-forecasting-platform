@@ -151,6 +151,7 @@ class AlertNotificationTest extends TestCase
         (new SendWeatherAlertJob($log->id))->failed(new \RuntimeException('SMTP down'));
 
         $this->assertSame('failed', $log->fresh()->status);
+        $this->assertSame('SMTP down', $log->fresh()->error_message);
     }
 
     private function makeCity(string $name = 'Київ'): City
