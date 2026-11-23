@@ -8,11 +8,19 @@ use Illuminate\Console\Command;
 class ValidateWeatherPredictions extends Command
 {
     protected $signature = 'weather:validate';
-    protected $description = 'Attach observed temperatures and absolute errors to completed forecasts';
+
+    protected $description = 'Validate forecasts using ERA5 archive and Open-Meteo model data';
 
     public function handle(PredictionValidationService $service): int
     {
-        $this->info('Updated '.$service->validate().' predictions with actual weather observations.');
+        $archiveUpdated = $service->validate();
+
+        $modelUpdated = $service->validateModelEstimates();
+
+        $this->info("ERA5 archive: {$archiveUpdated} predictions updated.");
+
+        $this->info("Open-Meteo model: {$modelUpdated} predictions updated.");
+
         return self::SUCCESS;
     }
 }

@@ -12,7 +12,7 @@ function Login({ onLogin, goToRegister }) {
       return;
     }
 
-    onLogin(email);
+    onLogin(email, password);
   }
 
   return (

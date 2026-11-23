@@ -7,72 +7,167 @@ use Illuminate\Support\Facades\DB;
 
 class PredictionService
 {
-    public function __construct(private readonly ForecastAlgorithms $algorithms) {}
+    /**
+     * Джерело погодинних даних для реального прогнозування.
+     * Synthetic та архівні записи не використовуються.
+     */
+    private const DATA_SOURCE = 'open_meteo_model';
 
-    /** Predict a future hour using only observations available at issuance time. */
-    public function predict(int $cityId, CarbonImmutable $issuedAt, int $horizonHours = 1, string $algorithm = 'historical_average'): array
-    {
+    public function __construct(
+        private readonly ForecastAlgorithms $algorithms
+    ) {
+    }
+
+    /**
+     * Створює прогноз на майбутню годину,
+     * використовуючи лише дані, доступні на момент прогнозування.
+     */
+    public function predict(
+        int $cityId,
+        CarbonImmutable $issuedAt,
+        int $horizonHours = 1,
+        string $algorithm = 'historical_average'
+    ): array {
         if ($horizonHours < 1 || $horizonHours > 24) {
-            throw new \InvalidArgumentException('Forecast horizon must be 1–24 hours.');
+            throw new \InvalidArgumentException(
+                'Forecast horizon must be 1–24 hours.'
+            );
         }
-        if (!in_array($algorithm, ['historical_average', 'similar_conditions'], true)) {
-            throw new \InvalidArgumentException('Invalid forecast algorithm.');
+
+        if (
+            !in_array(
+                $algorithm,
+                ['historical_average', 'similar_conditions'],
+                true
+            )
+        ) {
+            throw new \InvalidArgumentException(
+                'Invalid forecast algorithm.'
+            );
         }
+
         $issuedAt = $issuedAt->utc()->startOfHour();
         $target = $issuedAt->addHours($horizonHours);
+
+        // Беремо лише модельні погодинні дані,
+        // які були доступні до моменту прогнозування.
         $rows = DB::table('weather_logs')
             ->where('city_id', $cityId)
-            ->where('recorded_at', '<=', $issuedAt->format('Y-m-d H:i:s'))
-            ->where('recorded_at', '>=', $issuedAt->subDays(90)->format('Y-m-d H:i:s'))
+            ->where('data_source', self::DATA_SOURCE)
+            ->where(
+                'recorded_at',
+                '<=',
+                $issuedAt->format('Y-m-d H:i:s')
+            )
+            ->where(
+                'recorded_at',
+                '>=',
+                $issuedAt->subDays(90)->format('Y-m-d H:i:s')
+            )
             ->orderBy('recorded_at')
             ->get();
+
         if ($rows->isEmpty()) {
-            throw new \RuntimeException('No historical observations for this city.');
+            throw new \RuntimeException(
+                'No Open-Meteo model history for this city.'
+            );
         }
+
         $currentRow = $rows->last();
-        $currentAt = CarbonImmutable::parse($currentRow->recorded_at, 'UTC');
+
+        $currentAt = CarbonImmutable::parse(
+            $currentRow->recorded_at,
+            'UTC'
+        );
+
+        // Не будуємо прогноз на основі застарілих даних.
         if ($currentAt->diffInHours($issuedAt, false) > 3) {
-            throw new \RuntimeException('Latest observation is stale. Ingest current weather before forecasting; use --at for historical demo.');
+            throw new \RuntimeException(
+                'Latest Open-Meteo model data is stale. Run weather:ingest first.'
+            );
         }
+
         $current = $this->features($currentRow);
+
         if ($algorithm === 'historical_average') {
-            // Same target hour on prior days, keeping only data available at issue time.
             $samples = [];
+
             foreach ($rows as $row) {
-                $when = CarbonImmutable::parse($row->recorded_at, 'UTC');
-                if ($when->hour === $target->hour && $when->lessThan($issuedAt)) {
+                $when = CarbonImmutable::parse(
+                    $row->recorded_at,
+                    'UTC'
+                );
+
+                // Беремо попередні значення для тієї самої години доби.
+                if (
+                    $when->hour === $target->hour &&
+                    $when->lessThan($issuedAt)
+                ) {
                     $samples[] = [
                         'temperature' => (float) $row->temperature,
                         'precipitation' => (float) $row->precipitation,
                     ];
                 }
             }
+
             $samples = array_slice($samples, -30);
-            $result = $this->algorithms->historicalAverage($samples);
+
+            $result = $this->algorithms->historicalAverage(
+                $samples
+            );
         } else {
             $map = [];
+
             foreach ($rows as $row) {
-                $map[CarbonImmutable::parse($row->recorded_at, 'UTC')->format('Y-m-d H:i:s')] = $row;
+                $key = CarbonImmutable::parse(
+                    $row->recorded_at,
+                    'UTC'
+                )->format('Y-m-d H:i:s');
+
+                $map[$key] = $row;
             }
+
             $pairs = [];
+
             foreach ($rows as $row) {
-                $when = CarbonImmutable::parse($row->recorded_at, 'UTC');
+                $when = CarbonImmutable::parse(
+                    $row->recorded_at,
+                    'UTC'
+                );
+
                 $futureAt = $when->addHours($horizonHours);
-                // Strictly before issue time prevents looking at future outcomes.
+
+                // Обидва значення пари повинні бути відомі
+                // до моменту створення поточного прогнозу.
                 if (!$futureAt->lessThan($issuedAt)) {
                     continue;
                 }
-                $future = $map[$futureAt->format('Y-m-d H:i:s')] ?? null;
-                if ($future === null) {
+
+                $futureKey = $futureAt->format('Y-m-d H:i:s');
+                $futureRow = $map[$futureKey] ?? null;
+
+                if ($futureRow === null) {
                     continue;
                 }
-                $pairs[] = ['current' => $this->features($row), 'future' => $this->features($future)];
+
+                $pairs[] = [
+                    'current' => $this->features($row),
+                    'future' => $this->features($futureRow),
+                ];
             }
-            $result = $this->algorithms->similarConditions($current, $pairs);
+
+            $result = $this->algorithms->similarConditions(
+                $current,
+                $pairs
+            );
         }
+
         if ($result === null) {
-            throw new \RuntimeException('Insufficient historical data for this prediction method.');
+            throw new \RuntimeException(
+                'Insufficient Open-Meteo model history for this prediction method.'
+            );
         }
+
         $data = [
             'city_id' => $cityId,
             'generated_at' => $issuedAt->format('Y-m-d H:i:s'),
@@ -84,38 +179,65 @@ class PredictionService
             'created_at' => now(),
             'updated_at' => now(),
         ];
-        // PostgreSQL advisory lock serializes writes for this forecast identity.
-        // No migration or schema change to Diana's tables is required.
+
         $identity = [
             'city_id' => $cityId,
             'generated_at' => $data['generated_at'],
             'predicted_for_at' => $data['predicted_for_at'],
             'algorithm_type' => $algorithm,
         ];
+
         $id = DB::transaction(function () use ($identity, $data): int {
             $lockKey = implode(':', array_values($identity));
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', [$lockKey]);
-            $existing = DB::table('weather_predictions')->where($identity)->orderBy('id')->first();
+
+            DB::select(
+                'SELECT pg_advisory_xact_lock(hashtext(?))',
+                [$lockKey]
+            );
+
+            $existing = DB::table('weather_predictions')
+                ->where($identity)
+                ->orderBy('id')
+                ->first();
+
             if ($existing === null) {
-                return (int) DB::table('weather_predictions')->insertGetId($data);
+                return (int) DB::table('weather_predictions')
+                    ->insertGetId($data);
             }
-            $changed = (float) $existing->predicted_temp !== (float) $data['predicted_temp']
-                || (float) $existing->predicted_precipitation !== (float) $data['predicted_precipitation'];
+
+            $changed =
+                (float) $existing->predicted_temp !==
+                (float) $data['predicted_temp']
+                ||
+                (float) $existing->predicted_precipitation !==
+                (float) $data['predicted_precipitation'];
+
             $updates = [
                 'predicted_temp' => $data['predicted_temp'],
                 'predicted_precipitation' => $data['predicted_precipitation'],
                 'confidence_score' => $data['confidence_score'],
                 'updated_at' => now(),
             ];
+
             if ($changed) {
-                // The validation must be recomputed if the forecast changed.
                 $updates['actual_temp'] = null;
                 $updates['error_margin'] = null;
             }
-            DB::table('weather_predictions')->where('id', $existing->id)->update($updates);
+
+            DB::table('weather_predictions')
+                ->where('id', $existing->id)
+                ->update($updates);
+
             return (int) $existing->id;
         });
-        return ['id' => $id, 'city_id' => $cityId, 'issued_at' => $data['generated_at'], 'target' => $data['predicted_for_at'], 'algorithm' => $algorithm] + $result;
+
+        return [
+            'id' => $id,
+            'city_id' => $cityId,
+            'issued_at' => $data['generated_at'],
+            'target' => $data['predicted_for_at'],
+            'algorithm' => $algorithm,
+        ] + $result;
     }
 
     private function features(object $row): array

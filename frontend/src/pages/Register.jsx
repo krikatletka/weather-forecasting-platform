@@ -19,7 +19,7 @@ function Register({ onRegister, goToLogin }) {
       return;
     }
 
-    onRegister(name, email);
+    onRegister(name, email, password, confirmPassword);
   }
 
   return (

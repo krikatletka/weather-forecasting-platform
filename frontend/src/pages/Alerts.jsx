@@ -1,24 +1,30 @@
 import { useState, useEffect } from "react";
 import weatherData from "../data/weatherData";
 
-function Alerts({ selectedCity, userEmail }) {
-  const [rules, setRules] = useState(() => {
-    try {
-      const savedRules = localStorage.getItem(`weather-alerts-${userEmail}`);
-      return savedRules ? JSON.parse(savedRules) : [];
-    } catch {
-      return [];
-    }
-  });
+const API_URL = "http://localhost:8000/api";
 
-  const [cityId, setCityId] = useState(String(selectedCity.id));
+// Перетворення даних із Laravel у формат компонента
+function formatRule(rule) {
+  return {
+    id: rule.id,
+    cityId: Number(rule.city_id),
+    parameter: rule.parameter === "wind_speed" ? "wind" : rule.parameter,
+    condition:
+      rule.operator === "<" || rule.operator === "<=" ? "below" : "above",
+    value: Number(rule.threshold_value),
+    enabled: Boolean(rule.is_active),
+  };
+}
+
+function Alerts({ cities = weatherData.cities, token }) {
+  const [rules, setRules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [cityId, setCityId] = useState(String(cities[0]?.id ?? ""));
   const [parameter, setParameter] = useState("temperature");
   const [condition, setCondition] = useState("below");
   const [value, setValue] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem(`weather-alerts-${userEmail}`, JSON.stringify(rules));
-  }, [rules, userEmail]);
 
   const parameterNames = {
     temperature: "Температура",
@@ -39,36 +45,150 @@ function Alerts({ selectedCity, userEmail }) {
     above: "вище",
   };
 
-  function addRule(event) {
+  // Заголовки запитів із токеном авторизації
+  function getHeaders() {
+    return {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  }
+
+  // Отримання повідомлення про помилку Laravel
+  async function getErrorMessage(response) {
+    const result = await response.json();
+
+    if (result.errors) {
+      return Object.values(result.errors).flat().join("\n");
+    }
+
+    return result.message || "Сталася помилка. Спробуйте ще раз.";
+  }
+
+  // Завантаження правил із бази даних
+  useEffect(() => {
+    async function fetchRules() {
+      if (!token) {
+        setLoading(false);
+        setError("Потрібно увійти в обліковий запис.");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(`${API_URL}/alerts`, {
+          headers: getHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error(await getErrorMessage(response));
+        }
+
+        const result = await response.json();
+
+        setRules(result.data.map(formatRule));
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchRules();
+  }, [token]);
+
+  // Додавання нового правила
+  async function addRule(event) {
     event.preventDefault();
 
-    if (value.trim() === "") {
+    if (value.trim() === "" || !Number.isFinite(Number(value))) {
       return;
     }
 
-    const newRule = {
-      id: Date.now(),
-      cityId: Number(cityId),
-      parameter,
-      condition,
-      value: Number(value),
-      enabled: true,
-    };
+    try {
+      setError("");
 
-    setRules((previousRules) => [...previousRules, newRule]);
-    setValue("");
+      const response = await fetch(`${API_URL}/alerts`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          city_id: Number(cityId),
+          parameter: parameter === "wind" ? "wind_speed" : parameter,
+          operator: condition === "below" ? "<" : ">",
+          threshold_value: Number(value),
+          is_active: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      const result = await response.json();
+
+      setRules((previousRules) => [formatRule(result.data), ...previousRules]);
+
+      setValue("");
+    } catch (error) {
+      setError(error.message);
+    }
   }
 
-  function deleteRule(id) {
-    setRules((previousRules) => previousRules.filter((rule) => rule.id !== id));
+  // Видалення правила
+  async function deleteRule(id) {
+    try {
+      setError("");
+
+      const response = await fetch(`${API_URL}/alerts/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      setRules((previousRules) =>
+        previousRules.filter((rule) => rule.id !== id),
+      );
+    } catch (error) {
+      setError(error.message);
+    }
   }
 
-  function toggleRule(id) {
-    setRules((previousRules) =>
-      previousRules.map((rule) =>
-        rule.id === id ? { ...rule, enabled: !rule.enabled } : rule,
-      ),
-    );
+  // Увімкнення та вимкнення правила
+  async function toggleRule(id) {
+    const rule = rules.find((item) => item.id === id);
+
+    if (!rule) return;
+
+    try {
+      setError("");
+
+      const response = await fetch(`${API_URL}/alerts/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          is_active: !rule.enabled,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response));
+      }
+
+      const result = await response.json();
+
+      setRules((previousRules) =>
+        previousRules.map((item) =>
+          item.id === id ? formatRule(result.data) : item,
+        ),
+      );
+    } catch (error) {
+      setError(error.message);
+    }
   }
 
   return (
@@ -98,7 +218,7 @@ function Alerts({ selectedCity, userEmail }) {
               value={cityId}
               onChange={(event) => setCityId(event.target.value)}
             >
-              {weatherData.cities.map((city) => (
+              {cities.map((city) => (
                 <option key={city.id} value={city.id}>
                   {city.name}
                 </option>
@@ -166,24 +286,30 @@ function Alerts({ selectedCity, userEmail }) {
           </div>
         </div>
 
-        {rules.length === 0 ? (
+        {error && <p className="empty-alerts">{error}</p>}
+
+        {loading ? (
+          <p className="empty-alerts">Завантаження правил...</p>
+        ) : rules.length === 0 ? (
           <p className="empty-alerts">Ви ще не створили жодного правила.</p>
         ) : (
           <div className="alert-list">
             {rules.map((rule) => {
-              const city = weatherData.cities.find(
-                (item) => item.id === rule.cityId,
+              const city = cities.find(
+                (item) => Number(item.id) === rule.cityId,
               );
 
               return (
                 <div className="alert-item" key={rule.id}>
                   <div>
-                    <strong>{parameterNames[rule.parameter]}</strong>
+                    <strong>
+                      {parameterNames[rule.parameter] || rule.parameter}
+                    </strong>
 
                     <p>
                       {city?.name || "Невідоме місто"}:{" "}
-                      {conditionNames[rule.condition]} {rule.value}{" "}
-                      {parameterUnits[rule.parameter]}
+                      {conditionNames[rule.condition] || rule.condition}{" "}
+                      {rule.value} {parameterUnits[rule.parameter] || ""}
                     </p>
 
                     <span
